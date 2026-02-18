@@ -2,6 +2,7 @@ import React, { useState } from 'react';
 import { View, Text, StyleSheet, FlatList, TouchableOpacity, SafeAreaView } from 'react-native';
 import { ArrowLeft, Plus, GripVertical, Pencil, Archive, Trash2 } from 'lucide-react-native';
 import { COLORS } from '../constants/colors';
+import Swipeable from 'react-native-gesture-handler/Swipeable';
 
 export default function CultivateScreen({ navigation }) {
     const [habits, setHabits] = useState([
@@ -12,41 +13,32 @@ export default function CultivateScreen({ navigation }) {
         { id: 5, title: 'Journaling', active: true },
     ]);
 
-    // Simulate one item being swiped/active
-    const swipedId = 1;
-
-    const renderItem = ({ item }) => {
-        if (item.id === swipedId) {
-            // Mocking the swipe view for the first item as seen in design
-            return (
-                <View style={styles.swipedRow}>
-                    <View style={styles.swipedContent}>
-                        <GripVertical size={20} color={COLORS.textSecondary} />
-                        <Text style={styles.habitTitle}>{item.title}</Text>
-                        <Pencil size={20} color={COLORS.textSecondary} style={{ marginLeft: 'auto' }} />
-                    </View>
-                    <View style={styles.actions}>
-                        <TouchableOpacity style={styles.actionBtnArchive}>
-                            <Archive size={20} color="white" />
-                            <Text style={styles.actionText}>ARCHIVE</Text>
-                        </TouchableOpacity>
-                        <TouchableOpacity style={styles.actionBtnDelete}>
-                            <Trash2 size={20} color="white" />
-                            <Text style={styles.actionText}>DELETE</Text>
-                        </TouchableOpacity>
-                    </View>
-                </View>
-            );
-        }
-
+    const renderRightActions = (progress, dragX) => {
         return (
-            <View style={styles.row}>
-                <GripVertical size={20} color={COLORS.textSecondary} />
-                <Text style={styles.habitTitle}>{item.title}</Text>
-                <TouchableOpacity>
-                    <Pencil size={20} color={COLORS.textSecondary} />
+            <View style={styles.actions}>
+                <TouchableOpacity style={styles.actionBtnArchive} onPress={() => console.log('Archive')}>
+                    <Archive size={20} color="white" />
+                    <Text style={styles.actionText}>ARCHIVE</Text>
+                </TouchableOpacity>
+                <TouchableOpacity style={styles.actionBtnDelete} onPress={() => console.log('Delete')}>
+                    <Trash2 size={20} color="white" />
+                    <Text style={styles.actionText}>DELETE</Text>
                 </TouchableOpacity>
             </View>
+        );
+    };
+
+    const renderItem = ({ item }) => {
+        return (
+            <Swipeable renderRightActions={renderRightActions}>
+                <View style={styles.row}>
+                    <GripVertical size={20} color={COLORS.textSecondary} />
+                    <Text style={styles.habitTitle}>{item.title}</Text>
+                    <TouchableOpacity>
+                        <Pencil size={20} color={COLORS.textSecondary} />
+                    </TouchableOpacity>
+                </View>
+            </Swipeable>
         );
     };
 
@@ -133,19 +125,7 @@ const styles = StyleSheet.create({
         paddingHorizontal: 24,
         backgroundColor: '#F5F9F8', // Slightly different shade or just background
     },
-    swipedRow: {
-        flexDirection: 'row',
-        alignItems: 'center',
-        padding: 0,
-    },
-    swipedContent: {
-        flex: 1,
-        flexDirection: 'row',
-        alignItems: 'center',
-        paddingVertical: 20,
-        paddingHorizontal: 24,
-        backgroundColor: '#F5F9F8',
-    },
+
     habitTitle: {
         fontSize: 16,
         color: COLORS.textprimary,
