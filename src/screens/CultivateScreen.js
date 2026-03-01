@@ -1,5 +1,6 @@
-import React, { useState } from 'react';
-import { View, Text, StyleSheet, FlatList, TouchableOpacity, SafeAreaView } from 'react-native';
+import { View, Text, StyleSheet, FlatList, TouchableOpacity } from 'react-native';
+import { useState } from 'react';
+import { SafeAreaView } from 'react-native-safe-area-context';
 import { ArrowLeft, Plus, GripVertical, Pencil, Archive, Trash2 } from 'lucide-react-native';
 import { COLORS } from '../constants/colors';
 import Swipeable from 'react-native-gesture-handler/Swipeable';
@@ -43,7 +44,7 @@ export default function CultivateScreen({ navigation }) {
     };
 
     return (
-        <SafeAreaView style={styles.safeArea}>
+        <SafeAreaView edges={['top', 'left', 'right']} style={styles.safeArea}>
             <View style={styles.container}>
                 {/* Header */}
                 <View style={styles.header}>

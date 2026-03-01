@@ -1,5 +1,5 @@
-import React from 'react';
-import { View, Text, StyleSheet, ScrollView, SafeAreaView, Dimensions } from 'react-native';
+import { View, Text, StyleSheet, ScrollView, Dimensions } from 'react-native';
+import { SafeAreaView } from 'react-native-safe-area-context';
 import { Calendar, Flame, CheckCircle2 } from 'lucide-react-native';
 import Svg, { Path, Circle, Defs, LinearGradient, Stop } from 'react-native-svg';
 import { COLORS } from '../constants/colors';
@@ -43,7 +43,7 @@ const WeeklyFlowChart = () => {
 
 export default function InsightScreen() {
     return (
-        <SafeAreaView style={styles.safeArea}>
+        <SafeAreaView edges={['top', 'left', 'right']} style={styles.safeArea}>
             <ScrollView contentContainerStyle={styles.container}>
 
                 <View style={styles.header}>

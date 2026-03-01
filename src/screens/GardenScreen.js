@@ -1,5 +1,6 @@
-import React, { useState } from 'react';
-import { View, Text, StyleSheet, ScrollView, SafeAreaView, Platform } from 'react-native';
+import { View, Text, StyleSheet, ScrollView, Platform } from 'react-native';
+import { useState } from 'react';
+import { SafeAreaView } from 'react-native-safe-area-context';
 import { UserCircle } from 'lucide-react-native';
 import { COLORS } from '../constants/colors';
 import RitualItem from '../components/RitualItem';
@@ -40,7 +41,7 @@ export default function GardenScreen() {
     ];
 
     return (
-        <SafeAreaView style={styles.safeArea}>
+        <SafeAreaView edges={['top', 'left', 'right']} style={styles.safeArea}>
             <ScrollView contentContainerStyle={styles.container}>
 
                 {/* Header */}
