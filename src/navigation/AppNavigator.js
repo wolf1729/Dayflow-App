@@ -2,6 +2,7 @@ import React from 'react';
 import { createStackNavigator } from '@react-navigation/stack';
 import { NavigationContainer } from '@react-navigation/native';
 import LoginScreen from '../screens/LoginScreen';
+import SignupScreen from '../screens/SignupScreen';
 import TabNavigator from './TabNavigator';
 import { View, ActivityIndicator } from 'react-native';
 import { COLORS } from '../constants/colors';
@@ -19,6 +20,7 @@ export default function AppNavigator() {
                 initialRouteName="Login"
             >
                 <Stack.Screen name="Login" component={LoginScreen} />
+                <Stack.Screen name="Signup" component={SignupScreen} />
                 <Stack.Screen name="Main" component={TabNavigator} />
             </Stack.Navigator>
         </NavigationContainer>

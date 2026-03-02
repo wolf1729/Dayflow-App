@@ -1,13 +1,59 @@
-import { View, Text, StyleSheet, TextInput, TouchableOpacity, ScrollView, KeyboardAvoidingView, Platform } from 'react-native';
+import { View, Text, StyleSheet, TextInput, TouchableOpacity, ScrollView, KeyboardAvoidingView, Platform, ActivityIndicator } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useState } from 'react';
 import { Sprout, Eye, EyeOff } from 'lucide-react-native';
 import { COLORS } from '../constants/colors';
+import { getAuth, signInWithEmailAndPassword, GoogleAuthProvider, signInWithCredential } from '@react-native-firebase/auth';
+import { GoogleSignin } from '@react-native-google-signin/google-signin';
+
+GoogleSignin.configure({
+    webClientId: '333700671123-s0udhprotaekpq7s5koq87tr374d3k21.apps.googleusercontent.com',
+    scopes: ['profile', 'email'],
+});
 
 export default function LoginScreen({ navigation }) {
     const [email, setEmail] = useState('');
     const [password, setPassword] = useState('');
     const [showPassword, setShowPassword] = useState(false);
+    const [loading, setLoading] = useState(false);
+
+    const handleLogin = async () => {
+        if (!email.trim() || !password) {
+            import('react-native').then(rn => rn.Alert.alert("Error", "Please enter email and password"));
+            return;
+        }
+
+        setLoading(true);
+        try {
+            const authInstance = getAuth();
+            await signInWithEmailAndPassword(authInstance, email, password);
+            navigation.replace('Main');
+        } catch (error) {
+            console.error(error);
+            import('react-native').then(rn => rn.Alert.alert("Login Failed", "Invalid email or password."));
+        } finally {
+            setLoading(false);
+        }
+    };
+
+    const handleGoogleLogin = async () => {
+        setLoading(true);
+        try {
+            await GoogleSignin.hasPlayServices({ showPlayServicesUpdateDialog: true });
+            const googleSignInResult = await GoogleSignin.signIn();
+            const { idToken, accessToken } = googleSignInResult.data;
+
+            const googleCredential = GoogleAuthProvider.credential(idToken, accessToken);
+            const authInstance = getAuth();
+            await signInWithCredential(authInstance, googleCredential);
+            navigation.replace('Main');
+        } catch (error) {
+            console.error(error);
+            import('react-native').then(rn => rn.Alert.alert("Google Login Failed", "An error occurred during Google sign in"));
+        } finally {
+            setLoading(false);
+        }
+    };
 
     return (
         <SafeAreaView style={styles.safeArea}>
@@ -65,15 +111,24 @@ export default function LoginScreen({ navigation }) {
                     </View>
 
                     <TouchableOpacity
-                        style={styles.button}
-                        onPress={() => navigation.replace('Main')}
+                        style={[styles.button, { marginTop: 16 }]}
+                        onPress={handleLogin}
+                        disabled={loading}
                     >
-                        <Text style={styles.buttonText}>ENTER</Text>
+                        {loading ? <ActivityIndicator color={COLORS.textprimary} /> : <Text style={styles.buttonText}>ENTER</Text>}
+                    </TouchableOpacity>
+
+                    <TouchableOpacity
+                        style={[styles.button, styles.googleButton]}
+                        onPress={handleGoogleLogin}
+                        disabled={loading}
+                    >
+                        <Text style={[styles.buttonText, { color: COLORS.white }]}>SIGN IN WITH GOOGLE</Text>
                     </TouchableOpacity>
 
                     <View style={styles.footer}>
                         <Text style={styles.footerText}>Don't have an account? </Text>
-                        <TouchableOpacity>
+                        <TouchableOpacity onPress={() => navigation.navigate('Signup')}>
                             <Text style={styles.joinText}>Join.</Text>
                         </TouchableOpacity>
                     </View>
@@ -163,7 +218,11 @@ const styles = StyleSheet.create({
         borderWidth: 1.5,
         borderColor: COLORS.textprimary,
         alignItems: 'center',
-        marginBottom: 40,
+        marginBottom: 16,
+    },
+    googleButton: {
+        backgroundColor: '#4285F4',
+        borderColor: '#4285F4',
     },
     buttonText: {
         color: COLORS.textprimary,
