@@ -1,4 +1,3 @@
-import React from 'react';
 import { View, Text, StyleSheet, TouchableOpacity } from 'react-native';
 import { Check, Droplets, Flame } from 'lucide-react-native';
 import { COLORS } from '../constants/colors';

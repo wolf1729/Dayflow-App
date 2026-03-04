@@ -42,3 +42,6 @@ yarn-error.*
 
 # auth dependencies
 google-services.json
+
+# enviroment variables
+.env

@@ -5,6 +5,8 @@ import { Sprout, Eye, EyeOff } from 'lucide-react-native';
 import { COLORS } from '../constants/colors';
 import { getAuth, createUserWithEmailAndPassword, GoogleAuthProvider, signInWithCredential } from '@react-native-firebase/auth';
 import { GoogleSignin } from '@react-native-google-signin/google-signin';
+import Toast from 'react-native-toast-message';
+import useAuthStore from '../store/useAuthStore';
 
 GoogleSignin.configure({
     webClientId: '333700671123-s0udhprotaekpq7s5koq87tr374d3k21.apps.googleusercontent.com',
@@ -18,24 +20,26 @@ export default function SignupScreen({ navigation }) {
     const [showPassword, setShowPassword] = useState(false);
     const [showConfirmPassword, setShowConfirmPassword] = useState(false);
     const [loading, setLoading] = useState(false);
+    const setUser = useAuthStore((state) => state.setUser);
 
     const handleSignup = async () => {
         if (!email.trim() || !password || !confirmPassword) {
-            Alert.alert("Error", "Please fill in all fields");
+            Toast.show({ type: 'error', text1: 'Error', text2: 'Please fill in all fields' });
             return;
         }
         if (password !== confirmPassword) {
-            Alert.alert("Error", "Passwords do not match");
+            Toast.show({ type: 'error', text1: 'Error', text2: 'Passwords do not match' });
             return;
         }
 
         setLoading(true);
         try {
             const authInstance = getAuth();
-            await createUserWithEmailAndPassword(authInstance, email, password);
+            const userCredential = await createUserWithEmailAndPassword(authInstance, email, password);
+            setUser(userCredential.user);
         } catch (error) {
             console.error(error);
-            Alert.alert("Signup Failed", error.message);
+            Toast.show({ type: 'error', text1: 'Signup Failed', text2: error.message });
         } finally {
             setLoading(false);
         }
@@ -50,12 +54,11 @@ export default function SignupScreen({ navigation }) {
 
             const googleCredential = GoogleAuthProvider.credential(idToken, accessToken);
             const authInstance = getAuth();
-            await signInWithCredential(authInstance, googleCredential);
-
-            // navigation.replace('Main');
+            const userCredential = await signInWithCredential(authInstance, googleCredential);
+            setUser(userCredential.user);
         } catch (error) {
             console.error(error);
-            Alert.alert("Google Signup Failed", "An error occurred during Google sign up");
+            Toast.show({ type: 'error', text1: 'Google Signup Failed', text2: 'An error occurred during Google sign up' });
         } finally {
             setLoading(false);
         }

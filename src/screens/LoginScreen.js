@@ -5,6 +5,8 @@ import { Sprout, Eye, EyeOff } from 'lucide-react-native';
 import { COLORS } from '../constants/colors';
 import { getAuth, signInWithEmailAndPassword, GoogleAuthProvider, signInWithCredential } from '@react-native-firebase/auth';
 import { GoogleSignin } from '@react-native-google-signin/google-signin';
+import Toast from 'react-native-toast-message';
+import useAuthStore from '../store/useAuthStore';
 
 GoogleSignin.configure({
     webClientId: '333700671123-s0udhprotaekpq7s5koq87tr374d3k21.apps.googleusercontent.com',
@@ -16,21 +18,22 @@ export default function LoginScreen({ navigation }) {
     const [password, setPassword] = useState('');
     const [showPassword, setShowPassword] = useState(false);
     const [loading, setLoading] = useState(false);
+    const setUser = useAuthStore((state) => state.setUser);
 
     const handleLogin = async () => {
         if (!email.trim() || !password) {
-            import('react-native').then(rn => rn.Alert.alert("Error", "Please enter email and password"));
+            Toast.show({ type: 'error', text1: 'Error', text2: 'Please enter email and password' });
             return;
         }
 
         setLoading(true);
         try {
             const authInstance = getAuth();
-            await signInWithEmailAndPassword(authInstance, email, password);
-            navigation.replace('Main');
+            const userCredential = await signInWithEmailAndPassword(authInstance, email, password);
+            setUser(userCredential.user);
         } catch (error) {
             console.error(error);
-            import('react-native').then(rn => rn.Alert.alert("Login Failed", "Invalid email or password."));
+            Toast.show({ type: 'error', text1: 'Login Failed', text2: 'Invalid email or password.' });
         } finally {
             setLoading(false);
         }
@@ -45,11 +48,11 @@ export default function LoginScreen({ navigation }) {
 
             const googleCredential = GoogleAuthProvider.credential(idToken, accessToken);
             const authInstance = getAuth();
-            await signInWithCredential(authInstance, googleCredential);
-            navigation.replace('Main');
+            const userCredential = await signInWithCredential(authInstance, googleCredential);
+            setUser(userCredential.user);
         } catch (error) {
             console.error(error);
-            import('react-native').then(rn => rn.Alert.alert("Google Login Failed", "An error occurred during Google sign in"));
+            Toast.show({ type: 'error', text1: 'Google Login Failed', text2: 'An error occurred during Google sign in' });
         } finally {
             setLoading(false);
         }

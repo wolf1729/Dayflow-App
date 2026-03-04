@@ -1,4 +1,3 @@
-import React from 'react';
 import { createBottomTabNavigator } from '@react-navigation/bottom-tabs';
 import { Sprout, BarChart2, List } from 'lucide-react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';

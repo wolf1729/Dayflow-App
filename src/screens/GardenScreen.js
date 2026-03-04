@@ -1,100 +1,19 @@
-import { View, Text, StyleSheet, ScrollView, Platform, TouchableOpacity, Alert, Modal, Pressable } from 'react-native';
+import { View, Text, StyleSheet, ScrollView, Platform, TouchableOpacity } from 'react-native';
 import { useState } from 'react';
-import { SafeAreaView, useSafeAreaInsets } from 'react-native-safe-area-context';
-import { UserCircle, LogOut, X, Trash2 } from 'lucide-react-native';
-import { useNavigation } from '@react-navigation/native';
-import { getAuth, signOut, deleteUser } from '@react-native-firebase/auth';
-import { GoogleSignin } from '@react-native-google-signin/google-signin';
+import { SafeAreaView } from 'react-native-safe-area-context';
+import { UserCircle } from 'lucide-react-native';
 
 import { COLORS } from '../constants/colors';
 import RitualItem from '../components/RitualItem';
+import ProfileModal from '../components/Modal/ProfileModal';
 
 export default function GardenScreen() {
-    const navigation = useNavigation();
-    const insets = useSafeAreaInsets();
-
     const [isProfileModalVisible, setProfileModalVisible] = useState(false);
 
     const [rituals, setRituals] = useState([
         { id: 1, title: 'Morning Meditation', subtitle: '15 mins • Mindfulness', completed: false, streak: 12 },
         { id: 2, title: 'Hydrate', subtitle: 'Drink 500ml water', completed: false, streak: 0, type: 'water' },
     ]);
-
-    const executeLogout = async () => {
-        try {
-            const authInstance = getAuth();
-            await signOut(authInstance);
-
-            if (GoogleSignin.hasPreviousSignIn()) {
-                await GoogleSignin.signOut();
-            }
-
-            setProfileModalVisible(false);
-            navigation.reset({
-                index: 0,
-                routes: [{ name: 'Login' }],
-            });
-        } catch (error) {
-            console.error(error);
-            Alert.alert("Error", "Failed to log out");
-        }
-    };
-
-    const confirmDeleteAccount = () => {
-        Alert.alert(
-            "Delete Account",
-            "Are you sure you want to permanently delete your account? This action cannot be undone.",
-            [
-                { text: "Cancel", style: "cancel" },
-                {
-                    text: "Delete",
-                    style: "destructive",
-                    onPress: executeDeleteAccount
-                }
-            ]
-        );
-    };
-
-    const executeDeleteAccount = async () => {
-        try {
-            const authInstance = getAuth();
-            const user = authInstance.currentUser;
-            if (!user) {
-                return;
-            }
-
-            // Optional: You could delete user-specific data from Firestore/RTDB here.
-
-            await deleteUser(user);
-
-            if (GoogleSignin.hasPreviousSignIn()) {
-                await GoogleSignin.signOut();
-            }
-
-            setProfileModalVisible(false);
-            navigation.reset({
-                index: 0,
-                routes: [{ name: 'Login' }],
-            });
-        } catch (error) {
-            console.error(error);
-            if (error.code === 'auth/requires-recent-login') {
-                Alert.alert(
-                    "Error",
-                    "For security reasons, you must log in again before deleting your account.",
-                    [
-                        {
-                            text: "Log Out to Re-authenticate",
-                            onPress: executeLogout
-                        },
-                        { text: "Cancel", style: "cancel" }
-                    ]
-                );
-            } else {
-                Alert.alert("Error", "Failed to delete account. Please try again later.");
-            }
-        }
-    };
 
     const [focusItems, setFocusItems] = useState([
         { id: 3, title: 'Deep Work', subtitle: '2 hours • No phone', completed: false, streak: 5 },
@@ -186,46 +105,10 @@ export default function GardenScreen() {
             </ScrollView>
 
             {/* Profile Modal */}
-            <Modal
-                visible={isProfileModalVisible}
-                animationType="slide"
-                transparent={true}
-                onRequestClose={() => setProfileModalVisible(false)}
-            >
-                <Pressable style={styles.modalOverlay} onPress={() => setProfileModalVisible(false)}>
-                    <Pressable
-                        style={[
-                            styles.modalContent,
-                            { paddingBottom: Math.max(insets.bottom + 24, Platform.OS === 'ios' ? 40 : 24) }
-                        ]}
-                        onPress={(e) => e.stopPropagation()}
-                    >
-                        <View style={styles.modalHeader}>
-                            <Text style={styles.modalTitle}>Profile</Text>
-                            <TouchableOpacity onPress={() => setProfileModalVisible(false)} style={styles.closeButton}>
-                                <X size={24} color={COLORS.textSecondary} />
-                            </TouchableOpacity>
-                        </View>
-
-                        <View style={styles.profileInfoContainer}>
-                            <UserCircle size={64} color={COLORS.primary} strokeWidth={1.5} />
-                            <Text style={styles.profileName}>Dayflow User</Text>
-                        </View>
-
-                        <View style={styles.modalActions}>
-                            <TouchableOpacity style={styles.logoutButton} onPress={executeLogout}>
-                                <LogOut size={20} color="#FF3B30" />
-                                <Text style={styles.logoutButtonText}>Log out</Text>
-                            </TouchableOpacity>
-
-                            <TouchableOpacity style={styles.deleteButton} onPress={confirmDeleteAccount}>
-                                <Trash2 size={20} color="#FF3B30" />
-                                <Text style={styles.deleteButtonText}>Delete account</Text>
-                            </TouchableOpacity>
-                        </View>
-                    </Pressable>
-                </Pressable>
-            </Modal>
+            <ProfileModal
+                isVisible={isProfileModalVisible}
+                onClose={() => setProfileModalVisible(false)}
+            />
         </SafeAreaView>
     );
 }
@@ -316,72 +199,5 @@ const styles = StyleSheet.create({
     },
     listContainer: {
         marginBottom: 20,
-    },
-    modalOverlay: {
-        flex: 1,
-        backgroundColor: 'rgba(0, 0, 0, 0.4)',
-        justifyContent: 'flex-end',
-    },
-    modalContent: {
-        backgroundColor: COLORS.background,
-        borderTopLeftRadius: 24,
-        borderTopRightRadius: 24,
-        padding: 24,
-    },
-    modalHeader: {
-        flexDirection: 'row',
-        justifyContent: 'space-between',
-        alignItems: 'center',
-        marginBottom: 24,
-    },
-    modalTitle: {
-        fontSize: 20,
-        fontWeight: 'bold',
-        color: COLORS.textprimary,
-    },
-    closeButton: {
-        padding: 4,
-    },
-    profileInfoContainer: {
-        alignItems: 'center',
-        marginBottom: 32,
-    },
-    profileName: {
-        marginTop: 12,
-        fontSize: 18,
-        fontWeight: '600',
-        color: COLORS.textprimary,
-    },
-    modalActions: {
-        gap: 12, // Space between action buttons
-    },
-    logoutButton: {
-        flexDirection: 'row',
-        alignItems: 'center',
-        backgroundColor: '#FFF0F0',
-        padding: 16,
-        borderRadius: 16,
-        justifyContent: 'center',
-    },
-    logoutButtonText: {
-        color: '#FF3B30',
-        fontSize: 16,
-        fontWeight: 'bold',
-        marginLeft: 8,
-    },
-    deleteButton: {
-        flexDirection: 'row',
-        alignItems: 'center',
-        padding: 16,
-        borderRadius: 16,
-        justifyContent: 'center',
-        borderWidth: 1,
-        borderColor: '#FF3B30',
-    },
-    deleteButtonText: {
-        color: '#FF3B30',
-        fontSize: 16,
-        fontWeight: '600',
-        marginLeft: 8,
     },
 });
