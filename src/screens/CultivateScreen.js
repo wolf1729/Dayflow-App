@@ -1,9 +1,11 @@
 import { View, Text, StyleSheet, FlatList, TouchableOpacity } from 'react-native';
 import { useState } from 'react';
 import { SafeAreaView } from 'react-native-safe-area-context';
-import { ArrowLeft, Plus, GripVertical, Pencil, Archive, Trash2 } from 'lucide-react-native';
+import { ArrowLeft, Plus, Pencil } from 'lucide-react-native';
 import { COLORS } from '../constants/colors';
-import Swipeable from 'react-native-gesture-handler/Swipeable';
+
+import HabitItem from '../components/Cultivate/HabitItem';
+import AddItemModal from '../components/Modal/AddItemModal';
 
 export default function CultivateScreen({ navigation }) {
     const [habits, setHabits] = useState([
@@ -13,33 +15,34 @@ export default function CultivateScreen({ navigation }) {
         { id: 4, title: 'Evening Stretch', active: true },
         { id: 5, title: 'Journaling', active: true },
     ]);
+    const [isAddModalVisible, setAddModalVisible] = useState(false);
 
-    const renderRightActions = (progress, dragX) => {
-        return (
-            <View style={styles.actions}>
-                <TouchableOpacity style={styles.actionBtnArchive} onPress={() => console.log('Archive')}>
-                    <Archive size={20} color="white" />
-                    <Text style={styles.actionText}>ARCHIVE</Text>
-                </TouchableOpacity>
-                <TouchableOpacity style={styles.actionBtnDelete} onPress={() => console.log('Delete')}>
-                    <Trash2 size={20} color="white" />
-                    <Text style={styles.actionText}>DELETE</Text>
-                </TouchableOpacity>
-            </View>
-        );
+    const handleAddHabit = (title) => {
+        const newHabit = {
+            id: Date.now(), // Generate a simple unique ID
+            title: title,
+            active: true
+        };
+        setHabits([...habits, newHabit]);
+    };
+
+    const handleArchiveHabit = (id) => {
+        // Handle archive logic here
+        setHabits(habits.filter(habit => habit.id !== id));
+    };
+
+    const handleDeleteHabit = (id) => {
+        // Handle delete logic here
+        setHabits(habits.filter(habit => habit.id !== id));
     };
 
     const renderItem = ({ item }) => {
         return (
-            <Swipeable renderRightActions={renderRightActions}>
-                <View style={styles.row}>
-                    <GripVertical size={20} color={COLORS.textSecondary} />
-                    <Text style={styles.habitTitle}>{item.title}</Text>
-                    <TouchableOpacity>
-                        <Pencil size={20} color={COLORS.textSecondary} />
-                    </TouchableOpacity>
-                </View>
-            </Swipeable>
+            <HabitItem
+                item={item}
+                onArchive={handleArchiveHabit}
+                onDelete={handleDeleteHabit}
+            />
         );
     };
 
@@ -52,7 +55,7 @@ export default function CultivateScreen({ navigation }) {
                         <ArrowLeft size={24} color={COLORS.textprimary} />
                     </TouchableOpacity>
                     <Text style={styles.headerTitle}>Cultivate</Text>
-                    <TouchableOpacity>
+                    <TouchableOpacity onPress={() => setAddModalVisible(true)}>
                         <Plus size={24} color={COLORS.textprimary} />
                     </TouchableOpacity>
                 </View>
@@ -78,6 +81,12 @@ export default function CultivateScreen({ navigation }) {
                 </View>
 
             </View>
+
+            <AddItemModal
+                isVisible={isAddModalVisible}
+                onClose={() => setAddModalVisible(false)}
+                onAdd={handleAddHabit}
+            />
         </SafeAreaView>
     );
 }
@@ -119,48 +128,10 @@ const styles = StyleSheet.create({
     list: {
         backgroundColor: COLORS.background,
     },
-    row: {
-        flexDirection: 'row',
-        alignItems: 'center',
-        paddingVertical: 20,
-        paddingHorizontal: 24,
-        backgroundColor: '#F5F9F8', // Slightly different shade or just background
-    },
-
-    habitTitle: {
-        fontSize: 16,
-        color: COLORS.textprimary,
-        marginLeft: 16,
-        flex: 1,
-    },
     separator: {
         height: 1,
         backgroundColor: COLORS.border,
         marginLeft: 24,
-    },
-    actions: {
-        flexDirection: 'row',
-        height: '100%',
-    },
-    actionBtnArchive: {
-        backgroundColor: '#6B8E85',
-        justifyContent: 'center',
-        alignItems: 'center',
-        width: 80,
-        height: '100%',
-    },
-    actionBtnDelete: {
-        backgroundColor: '#D9534F', // Muted red
-        justifyContent: 'center',
-        alignItems: 'center',
-        width: 80,
-        height: '100%',
-    },
-    actionText: {
-        color: 'white',
-        fontSize: 10,
-        fontWeight: 'bold',
-        marginTop: 4,
     },
     footer: {
         alignItems: 'center',
