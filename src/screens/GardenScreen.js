@@ -29,20 +29,23 @@ export default function GardenScreen() {
         setFocusItems(items => items.map(item => item.id === id ? { ...item, completed: !item.completed } : item));
     };
 
-    // Date formatting (mocked for now to match design or dynamic)
+    // Date formatting
     const date = new Date();
     const dayName = date.toLocaleDateString('en-US', { weekday: 'long' });
     const dayNumber = date.getDate();
     const monthName = date.toLocaleDateString('en-US', { month: 'short' });
 
-    // Mock calendar strip data
-    const weekDays = [
-        { day: 'Mon', date: 21, current: false },
-        { day: 'Tue', date: 22, current: false },
-        { day: 'Wed', date: 23, current: false },
-        { day: 'Today', date: 24, current: true }, // Hardcoded matching the design for effect, but logic could be dynamic
-        { day: 'Fri', date: 25, current: false },
-    ];
+    // Dynamic calendar strip data
+    const ObjectDaysOffsets = [-3, -2, -1, 0, 1];
+    const weekDays = ObjectDaysOffsets.map((offset) => {
+        const d = new Date();
+        d.setDate(date.getDate() + offset);
+        return {
+            day: offset === 0 ? 'Today' : d.toLocaleDateString('en-US', { weekday: 'short' }),
+            date: d.getDate(),
+            current: offset === 0,
+        };
+    });
 
     return (
         <SafeAreaView edges={['top', 'left', 'right']} style={styles.safeArea}>
