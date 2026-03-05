@@ -17,10 +17,13 @@ export default function CultivateScreen({ navigation }) {
     ]);
     const [isAddModalVisible, setAddModalVisible] = useState(false);
 
-    const handleAddHabit = (title) => {
+    const handleAddHabit = (habitData) => {
         const newHabit = {
             id: Date.now(), // Generate a simple unique ID
-            title: title,
+            title: habitData.title,
+            isCounter: habitData.isCounter,
+            unit: habitData.unit,
+            group: habitData.group,
             active: true
         };
         setHabits([...habits, newHabit]);
@@ -45,6 +48,8 @@ export default function CultivateScreen({ navigation }) {
             />
         );
     };
+
+    const existingCategories = [...new Set(habits.map(h => h.group).filter(Boolean))];
 
     return (
         <SafeAreaView edges={['top', 'left', 'right']} style={styles.safeArea}>
@@ -86,6 +91,7 @@ export default function CultivateScreen({ navigation }) {
                 isVisible={isAddModalVisible}
                 onClose={() => setAddModalVisible(false)}
                 onAdd={handleAddHabit}
+                existingCategories={existingCategories}
             />
         </SafeAreaView>
     );

@@ -12,17 +12,31 @@ export default function GardenScreen() {
 
     const [rituals, setRituals] = useState([
         { id: 1, title: 'Morning Meditation', subtitle: '15 mins • Mindfulness', completed: false, streak: 12 },
-        { id: 2, title: 'Hydrate', subtitle: 'Drink 500ml water', completed: false, streak: 0, type: 'water' },
+        { id: 2, title: 'Hydrate', subtitle: 'Drink enough water', isCounter: true, count: 0, unit: 'glasses', streak: 0, type: 'water' },
     ]);
 
     const [focusItems, setFocusItems] = useState([
-        { id: 3, title: 'Deep Work', subtitle: '2 hours • No phone', completed: false, streak: 5 },
+        { id: 3, title: 'Leetcoding', subtitle: 'Daily practice', isCounter: true, count: 0, unit: 'questions', streak: 5 },
         { id: 4, title: 'Read 30 Pages', subtitle: 'Atomic Habits', completed: true, streak: 24 },
         { id: 5, title: 'Journaling', subtitle: 'Gratitude log', completed: true, streak: 8 },
     ]);
 
     const toggleRitual = (id) => {
         setRituals(items => items.map(item => item.id === id ? { ...item, completed: !item.completed } : item));
+    };
+
+    const handleIncrement = (id, listType) => {
+        const setter = listType === 'rituals' ? setRituals : setFocusItems;
+        setter(items => items.map(item =>
+            item.id === id ? { ...item, count: (item.count || 0) + 1 } : item
+        ));
+    };
+
+    const handleDecrement = (id, listType) => {
+        const setter = listType === 'rituals' ? setRituals : setFocusItems;
+        setter(items => items.map(item =>
+            item.id === id ? { ...item, count: Math.max(0, (item.count || 0) - 1) } : item
+        ));
     };
 
     const toggleFocus = (id) => {
@@ -85,6 +99,8 @@ export default function GardenScreen() {
                             key={item.id}
                             {...item}
                             onToggle={() => toggleRitual(item.id)}
+                            onIncrement={() => handleIncrement(item.id, 'rituals')}
+                            onDecrement={() => handleDecrement(item.id, 'rituals')}
                         />
                     ))}
                 </View>
@@ -101,6 +117,8 @@ export default function GardenScreen() {
                             key={item.id}
                             {...item}
                             onToggle={() => toggleFocus(item.id)}
+                            onIncrement={() => handleIncrement(item.id, 'focus')}
+                            onDecrement={() => handleDecrement(item.id, 'focus')}
                         />
                     ))}
                 </View>
