@@ -3,13 +3,13 @@ import { SafeAreaView } from 'react-native-safe-area-context';
 import { useState } from 'react';
 import { Sprout, Eye, EyeOff } from 'lucide-react-native';
 import { COLORS } from '../constants/colors';
-import { getAuth, signInWithEmailAndPassword, GoogleAuthProvider, signInWithCredential } from '@react-native-firebase/auth';
+import auth, { getAuth, signInWithEmailAndPassword, GoogleAuthProvider, signInWithCredential } from '@react-native-firebase/auth';
 import { GoogleSignin } from '@react-native-google-signin/google-signin';
 import Toast from 'react-native-toast-message';
 import useAuthStore from '../store/useAuthStore';
 
 GoogleSignin.configure({
-    webClientId: '333700671123-s0udhprotaekpq7s5koq87tr374d3k21.apps.googleusercontent.com',
+    webClientId: process.env.EXPO_PUBLIC_WEBCLIENTID,
     scopes: ['profile', 'email'],
 });
 
@@ -19,6 +19,20 @@ export default function LoginScreen({ navigation }) {
     const [showPassword, setShowPassword] = useState(false);
     const [loading, setLoading] = useState(false);
     const setUser = useAuthStore((state) => state.setUser);
+
+    const syncUserWithBackend = async (firebaseUser) => {
+        try {
+            const idToken = await firebaseUser.getIdToken();
+            console.log('ID Token retrieved, syncing with backend...');
+
+            const userData = await apiClient.post('/auth/sync', { idToken });
+            console.log('User Data:', userData);
+            return userData;
+        } catch (error) {
+            console.error('Sync Error:', error);
+            throw new Error(error.message || 'Sync failed');
+        }
+    };
 
     const handleLogin = async () => {
         if (!email.trim() || !password) {
@@ -30,10 +44,15 @@ export default function LoginScreen({ navigation }) {
         try {
             const authInstance = getAuth();
             const userCredential = await signInWithEmailAndPassword(authInstance, email, password);
-            setUser(userCredential.user);
+
+            // Sync with backend
+            const userData = await syncUserWithBackend(userCredential.user);
+            setUser(userData);
+
+            Toast.show({ type: 'success', text1: 'Welcome', text2: `Signed in as @${userData.username}` });
         } catch (error) {
             console.error(error);
-            Toast.show({ type: 'error', text1: 'Login Failed', text2: 'Invalid email or password.' });
+            Toast.show({ type: 'error', text1: 'Login Failed', text2: error.message || 'Invalid email or password.' });
         } finally {
             setLoading(false);
         }
@@ -49,10 +68,15 @@ export default function LoginScreen({ navigation }) {
             const googleCredential = GoogleAuthProvider.credential(idToken, accessToken);
             const authInstance = getAuth();
             const userCredential = await signInWithCredential(authInstance, googleCredential);
-            setUser(userCredential.user);
+
+            // Sync with backend
+            const userData = await syncUserWithBackend(userCredential.user);
+            setUser(userData);
+
+            Toast.show({ type: 'success', text1: 'Welcome', text2: `Signed in as @${userData.username}` });
         } catch (error) {
             console.error(error);
-            Toast.show({ type: 'error', text1: 'Google Login Failed', text2: 'An error occurred during Google sign in' });
+            Toast.show({ type: 'error', text1: 'Google Login Failed', text2: error.message || 'An error occurred during Google sign in' });
         } finally {
             setLoading(false);
         }

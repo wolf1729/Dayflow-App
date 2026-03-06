@@ -9,7 +9,7 @@ import Toast from 'react-native-toast-message';
 import useAuthStore from '../store/useAuthStore';
 
 GoogleSignin.configure({
-    webClientId: '333700671123-s0udhprotaekpq7s5koq87tr374d3k21.apps.googleusercontent.com',
+    webClientId: process.env.EXPO_PUBLIC_WEBCLIENTID,
     scopes: ['profile', 'email'],
 });
 
@@ -21,6 +21,20 @@ export default function SignupScreen({ navigation }) {
     const [showConfirmPassword, setShowConfirmPassword] = useState(false);
     const [loading, setLoading] = useState(false);
     const setUser = useAuthStore((state) => state.setUser);
+
+    const syncUserWithBackend = async (firebaseUser) => {
+        try {
+            const idToken = await firebaseUser.getIdToken();
+            console.log('ID Token retrieved, syncing with backend...');
+
+            const userData = await apiClient.post('/auth/sync', { idToken });
+            console.log('User Data:', userData);
+            return userData;
+        } catch (error) {
+            console.error('Sync Error:', error);
+            throw new Error(error.message || 'Sync failed');
+        }
+    };
 
     const handleSignup = async () => {
         if (!email.trim() || !password || !confirmPassword) {
@@ -36,7 +50,12 @@ export default function SignupScreen({ navigation }) {
         try {
             const authInstance = getAuth();
             const userCredential = await createUserWithEmailAndPassword(authInstance, email, password);
-            setUser(userCredential.user);
+
+            // Sync with backend
+            const userData = await syncUserWithBackend(userCredential.user);
+            setUser(userData);
+
+            Toast.show({ type: 'success', text1: 'Account Created', text2: `Signed in as @${userData.username}` });
         } catch (error) {
             console.error(error);
             Toast.show({ type: 'error', text1: 'Signup Failed', text2: error.message });
@@ -55,10 +74,15 @@ export default function SignupScreen({ navigation }) {
             const googleCredential = GoogleAuthProvider.credential(idToken, accessToken);
             const authInstance = getAuth();
             const userCredential = await signInWithCredential(authInstance, googleCredential);
-            setUser(userCredential.user);
+
+            // Sync with backend
+            const userData = await syncUserWithBackend(userCredential.user);
+            setUser(userData);
+
+            Toast.show({ type: 'success', text1: 'Account Created', text2: `Signed in as @${userData.username}` });
         } catch (error) {
             console.error(error);
-            Toast.show({ type: 'error', text1: 'Google Signup Failed', text2: 'An error occurred during Google sign up' });
+            Toast.show({ type: 'error', text1: 'Google Signup Failed', text2: error.message || 'An error occurred during Google sign up' });
         } finally {
             setLoading(false);
         }

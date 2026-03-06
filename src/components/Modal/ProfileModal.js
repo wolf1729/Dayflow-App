@@ -7,10 +7,13 @@ import { GoogleSignin } from '@react-native-google-signin/google-signin';
 import Toast from 'react-native-toast-message';
 
 import { COLORS } from '../../constants/colors';
+import useAuthStore from '../../store/useAuthStore';
 
 export default function ProfileModal({ isVisible, onClose }) {
     const navigation = useNavigation();
     const insets = useSafeAreaInsets();
+    const logout = useAuthStore((state) => state.logout);
+    const user = useAuthStore((state) => state.user);
 
     const executeLogout = async () => {
         try {
@@ -21,11 +24,8 @@ export default function ProfileModal({ isVisible, onClose }) {
                 await GoogleSignin.signOut();
             }
 
+            logout();
             onClose();
-            navigation.reset({
-                index: 0,
-                routes: [{ name: 'Login' }],
-            });
         } catch (error) {
             console.error(error);
             Toast.show({ type: 'error', text1: 'Error', text2: 'Failed to log out' });
@@ -50,24 +50,19 @@ export default function ProfileModal({ isVisible, onClose }) {
     const executeDeleteAccount = async () => {
         try {
             const authInstance = getAuth();
-            const user = authInstance.currentUser;
-            if (!user) {
+            const firebaseUser = authInstance.currentUser;
+            if (!firebaseUser) {
                 return;
             }
 
-            // Optional: You could delete user-specific data from Firestore/RTDB here.
-
-            await deleteUser(user);
+            await deleteUser(firebaseUser);
 
             if (GoogleSignin.hasPreviousSignIn()) {
                 await GoogleSignin.signOut();
             }
 
+            logout();
             onClose();
-            navigation.reset({
-                index: 0,
-                routes: [{ name: 'Login' }],
-            });
         } catch (error) {
             console.error(error);
             if (error.code === 'auth/requires-recent-login') {
@@ -112,7 +107,8 @@ export default function ProfileModal({ isVisible, onClose }) {
 
                     <View style={styles.profileInfoContainer}>
                         <UserCircle size={64} color={COLORS.primary} strokeWidth={1.5} />
-                        <Text style={styles.profileName}>Dayflow User</Text>
+                        <Text style={styles.profileName}>{user?.name || 'Dayflow User'}</Text>
+                        {user?.username && <Text style={styles.profileUsername}>@{user.username}</Text>}
                     </View>
 
                     <View style={styles.modalActions}>
@@ -167,6 +163,11 @@ const styles = StyleSheet.create({
         fontSize: 18,
         fontWeight: '600',
         color: COLORS.textprimary,
+    },
+    profileUsername: {
+        fontSize: 14,
+        color: COLORS.textSecondary,
+        marginTop: 4,
     },
     modalActions: {
         gap: 12, // Space between action buttons
