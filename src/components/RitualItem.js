@@ -16,15 +16,19 @@ export default function RitualItem({
     onDecrement
 }) {
     if (isCounter) {
+        const targetNumber = parseFloat(unit) || 0;
+        const reachedTarget = targetNumber > 0 && count >= targetNumber;
+        const isActuallyCompleted = completed || reachedTarget;
+
         return (
-            <View style={styles.container}>
+            <View style={[styles.container, isActuallyCompleted && styles.containerCompleted]}>
                 <View style={styles.leftContent}>
                     <View style={styles.countCircle}>
                         <Text style={styles.countText}>{count}</Text>
                     </View>
                     <View style={styles.textContainer}>
-                        <Text style={styles.title}>{title}</Text>
-                        <Text style={styles.subtitle}>{unit || 'units'}</Text>
+                        <Text style={[styles.title, isActuallyCompleted && styles.textCompleted]}>{title}</Text>
+                        <Text style={styles.subtitle}>Target: {unit || '∞'}</Text>
                     </View>
                 </View>
 
@@ -38,9 +42,14 @@ export default function RitualItem({
                     </TouchableOpacity>
 
                     <TouchableOpacity
-                        style={[styles.controlButton, styles.incrementButton]}
+                        style={[
+                            styles.controlButton,
+                            styles.incrementButton,
+                            isActuallyCompleted && styles.incrementButtonDisabled
+                        ]}
                         onPress={onIncrement}
                         activeOpacity={0.6}
+                        disabled={isActuallyCompleted}
                     >
                         <Plus size={18} color="white" />
                     </TouchableOpacity>
@@ -172,6 +181,10 @@ const styles = StyleSheet.create({
     incrementButton: {
         backgroundColor: COLORS.textprimary,
         borderColor: COLORS.textprimary,
+    },
+    incrementButtonDisabled: {
+        backgroundColor: COLORS.textSecondary,
+        borderColor: COLORS.textSecondary,
     },
     streakContainer: {
         flexDirection: 'row',

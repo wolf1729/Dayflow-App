@@ -60,14 +60,23 @@ const ritualService = {
     /**
      * Mark a ritual as complete for the day.
      * @param {string} uid User ID
-     * @param {string} ritualId ID of the ritual
-     * @param {string} timestamp ISO string representation of the completion time
+     * @param {string} ritualId ID of the ritual to complete
+     * @param {string} timestamp ISO timestamp of completion
      */
     async completeRitual(uid, ritualId, timestamp) {
-        return apiClient.patch(`/rituals/${uid}/complete/${ritualId}`, {
-            timestamp: timestamp
-        });
+        return apiClient.patch(`/rituals/${uid}/complete/${ritualId}`, { timestamp });
     },
+
+    /**
+     * Log a count for a specific date for counter rituals.
+     * @param {string} uid User ID
+     * @param {string} ritualId ID of the ritual to update
+     * @param {string} date YYYY-MM-DD date string
+     * @param {number} count The new total count for that date
+     */
+    async logRitualCount(uid, ritualId, date, count) {
+        return apiClient.patch(`/rituals/${uid}/log-count/${ritualId}`, { date, count });
+    }
 };
 
 export default ritualService;

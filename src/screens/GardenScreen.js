@@ -87,16 +87,67 @@ export default function GardenScreen() {
         }
     };
 
-    const handleIncrement = (id) => {
-        setRituals(items => items.map(item =>
-            item.id === id ? { ...item, count: (item.count || 0) + 1 } : item
-        ));
+    const handleIncrement = async (id) => {
+        let newCount = 0;
+        let isCompleteNow = false;
+        let targetCount = 0;
+        let skipUpdate = false;
+
+        setRituals(items => items.map(item => {
+            if (item.id === id) {
+                targetCount = parseFloat(item.unit) || 0;
+
+                // Prevent incrementing beyond target
+                if (targetCount > 0 && (item.count || 0) >= targetCount) {
+                    skipUpdate = true;
+                    return item;
+                }
+
+                newCount = (item.count || 0) + 1;
+                if (!item.completed && targetCount > 0 && newCount >= targetCount) {
+                    isCompleteNow = true;
+                }
+                return { ...item, count: newCount, completed: item.completed || isCompleteNow };
+            }
+            return item;
+        }));
+
+        if (skipUpdate) return;
+
+        if (user && user.uid) {
+            try {
+                const todayStr = new Date().toISOString().split('T')[0];
+                await ritualService.logRitualCount(user.uid, id, todayStr, newCount);
+
+                if (isCompleteNow) {
+                    const timestamp = new Date().toISOString();
+                    await ritualService.completeRitual(user.uid, id, timestamp);
+                }
+            } catch (error) {
+                console.error('Failed to log count or auto-complete:', error);
+            }
+        }
     };
 
-    const handleDecrement = (id) => {
-        setRituals(items => items.map(item =>
-            item.id === id ? { ...item, count: Math.max(0, (item.count || 0) - 1) } : item
-        ));
+    const handleDecrement = async (id) => {
+        let newCount = 0;
+
+        setRituals(items => items.map(item => {
+            if (item.id === id) {
+                newCount = Math.max(0, (item.count || 0) - 1);
+                return { ...item, count: newCount };
+            }
+            return item;
+        }));
+
+        if (user && user.uid) {
+            try {
+                const todayStr = new Date().toISOString().split('T')[0];
+                await ritualService.logRitualCount(user.uid, id, todayStr, newCount);
+            } catch (error) {
+                console.error('Failed to log count decrement:', error);
+            }
+        }
     };
 
     // Date formatting

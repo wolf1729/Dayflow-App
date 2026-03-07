@@ -23,7 +23,7 @@ export default function AddItemModal({ isVisible, onClose, onAdd, existingCatego
             onAdd({
                 title: title.trim(),
                 isCounter,
-                unit: isCounter ? unit.trim() : null,
+                unit: isCounter ? String(parseFloat(unit) || 0) : null,
                 group: finalGroup
             });
             setTitle('');
@@ -131,15 +131,16 @@ export default function AddItemModal({ isVisible, onClose, onAdd, existingCatego
                             <View style={[styles.checkbox, isCounter && styles.checkboxActive]}>
                                 {isCounter && <Hash size={14} color={COLORS.card} />}
                             </View>
-                            <Text style={styles.counterToggleText}>Track with numbers (e.g. glasses, pushups)</Text>
+                            <Text style={styles.counterToggleText}>Track a target number (e.g. 8 glasses)</Text>
                         </TouchableOpacity>
 
                         {isCounter && (
                             <View style={styles.inputContainer}>
                                 <TextInput
                                     style={styles.input}
-                                    placeholder="Unit (e.g. glasses, pages, lbs)"
+                                    placeholder="Target Count (e.g. 5)"
                                     placeholderTextColor={COLORS.textSecondary}
+                                    keyboardType="numeric"
                                     value={unit}
                                     onChangeText={setUnit}
                                     onSubmitEditing={handleAdd}
