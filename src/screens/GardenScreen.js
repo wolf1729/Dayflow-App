@@ -72,13 +72,25 @@ export default function GardenScreen() {
         const item = rituals.find(r => r.id === id);
         if (item && item.completed) return; // Prevent unmarking
 
+        let newRitualsState = [];
+
         // Optimistic update
-        setRituals(items => items.map(item => item.id === id ? { ...item, completed: true } : item));
+        setRituals(items => {
+            newRitualsState = items.map(item => item.id === id ? { ...item, completed: true } : item);
+            return newRitualsState;
+        });
 
         if (user && user.uid) {
             try {
                 const timestamp = new Date().toISOString();
+                const todayStr = timestamp.split('T')[0];
+
                 await ritualService.completeRitual(user.uid, id, timestamp);
+
+                // Check if all active rituals are now complete
+                if (newRitualsState.length > 0 && newRitualsState.every(r => r.completed)) {
+                    await ritualService.updateDailyStreak(user.uid, todayStr);
+                }
             } catch (error) {
                 console.error('Failed to complete ritual:', error);
                 // Revert on error
@@ -92,25 +104,29 @@ export default function GardenScreen() {
         let isCompleteNow = false;
         let targetCount = 0;
         let skipUpdate = false;
+        let newRitualsState = [];
 
-        setRituals(items => items.map(item => {
-            if (item.id === id) {
-                targetCount = parseFloat(item.unit) || 0;
+        setRituals(items => {
+            newRitualsState = items.map(item => {
+                if (item.id === id) {
+                    targetCount = parseFloat(item.unit) || 0;
 
-                // Prevent incrementing beyond target
-                if (targetCount > 0 && (item.count || 0) >= targetCount) {
-                    skipUpdate = true;
-                    return item;
+                    // Prevent incrementing beyond target
+                    if (targetCount > 0 && (item.count || 0) >= targetCount) {
+                        skipUpdate = true;
+                        return item;
+                    }
+
+                    newCount = (item.count || 0) + 1;
+                    if (!item.completed && targetCount > 0 && newCount >= targetCount) {
+                        isCompleteNow = true;
+                    }
+                    return { ...item, count: newCount, completed: item.completed || isCompleteNow };
                 }
-
-                newCount = (item.count || 0) + 1;
-                if (!item.completed && targetCount > 0 && newCount >= targetCount) {
-                    isCompleteNow = true;
-                }
-                return { ...item, count: newCount, completed: item.completed || isCompleteNow };
-            }
-            return item;
-        }));
+                return item;
+            });
+            return newRitualsState;
+        });
 
         if (skipUpdate) return;
 
@@ -122,6 +138,11 @@ export default function GardenScreen() {
                 if (isCompleteNow) {
                     const timestamp = new Date().toISOString();
                     await ritualService.completeRitual(user.uid, id, timestamp);
+
+                    // Check if all active rituals are now complete
+                    if (newRitualsState.length > 0 && newRitualsState.every(r => r.completed)) {
+                        await ritualService.updateDailyStreak(user.uid, todayStr);
+                    }
                 }
             } catch (error) {
                 console.error('Failed to log count or auto-complete:', error);

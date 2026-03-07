@@ -76,6 +76,15 @@ const ritualService = {
      */
     async logRitualCount(uid, ritualId, date, count) {
         return apiClient.patch(`/rituals/${uid}/log-count/${ritualId}`, { date, count });
+    },
+
+    /**
+     * Update the daily streak if all rituals are complete.
+     * @param {string} uid User ID
+     * @param {string} date YYYY-MM-DD date string
+     */
+    async updateDailyStreak(uid, date) {
+        return apiClient.patch(`/rituals/${uid}/update-streak`, { date });
     }
 };
 
