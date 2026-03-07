@@ -312,9 +312,6 @@ const styles = StyleSheet.create({
     chartContainer: {
         alignItems: 'center',
         marginBottom: 32,
-        borderColor: "black",
-        borderWidth: 1,
-        borderRadius: 16,
     },
     chartStyle: {
         borderRadius: 16,
