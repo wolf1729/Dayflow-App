@@ -1,42 +1,82 @@
 import { View, Text, StyleSheet, FlatList, TouchableOpacity } from 'react-native';
-import { useState } from 'react';
+import { useState, useEffect, useCallback } from 'react';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { ArrowLeft, Plus, Pencil } from 'lucide-react-native';
 import { COLORS } from '../constants/colors';
 
 import HabitItem from '../components/Cultivate/HabitItem';
 import AddItemModal from '../components/Modal/AddItemModal';
+import useAuthStore from '../store/useAuthStore';
+import ritualService from '../services/ritualService';
 
 export default function CultivateScreen({ navigation }) {
-    const [habits, setHabits] = useState([
-        { id: 1, title: 'Morning Meditation', active: true },
-        { id: 2, title: 'Drink 2L Water', active: true },
-        { id: 3, title: 'No Screen Time > 9PM', active: true },
-        { id: 4, title: 'Evening Stretch', active: true },
-        { id: 5, title: 'Journaling', active: true },
-    ]);
+    const { user } = useAuthStore();
+    const [habits, setHabits] = useState([]);
+    const [loading, setLoading] = useState(true);
+    const [error, setError] = useState(null);
     const [isAddModalVisible, setAddModalVisible] = useState(false);
 
-    const handleAddHabit = (habitData) => {
-        const newHabit = {
-            id: Date.now(), // Generate a simple unique ID
-            title: habitData.title,
-            isCounter: habitData.isCounter,
-            unit: habitData.unit,
-            group: habitData.group,
-            active: true
-        };
-        setHabits([...habits, newHabit]);
+    const fetchRituals = useCallback(async () => {
+        if (!user || !user.uid) return;
+        setLoading(true);
+        try {
+            const data = await ritualService.getRituals(user.uid);
+            // Backend returns RitualModel with activeRitual, archivedRitual, deletedRitual
+            // Map activeRitual to the format used in the UI
+            const activeRituals = (data.activeRitual || []).map((r, index) => ({
+                id: r.name, // Use name as ID for consistency with backend patches
+                title: r.name,
+                isCounter: r.isCounter,
+                unit: r.unit,
+                group: r.group,
+                active: true
+            }));
+            setHabits(activeRituals);
+            setError(null);
+        } catch (err) {
+            console.error('Failed to fetch rituals:', err);
+            setError('Could not load rituals. Please try again.');
+        } finally {
+            setLoading(false);
+        }
+    }, [user]);
+
+    useEffect(() => {
+        fetchRituals();
+    }, [fetchRituals]);
+
+    const handleAddHabit = async (habitData) => {
+        if (!user || !user.uid) return;
+        try {
+            await ritualService.createRitual(user.uid, habitData);
+            // Refresh the list after adding
+            fetchRituals();
+        } catch (err) {
+            console.error('Failed to add ritual:', err);
+            alert('Failed to add habit. Please try again.');
+        }
     };
 
-    const handleArchiveHabit = (id) => {
-        // Handle archive logic here
-        setHabits(habits.filter(habit => habit.id !== id));
+    const handleArchiveHabit = async (id) => {
+        if (!user || !user.uid) return;
+        try {
+            await ritualService.archiveRitual(user.uid, id); // id is name
+            setHabits(habits.filter(habit => habit.id !== id));
+        } catch (err) {
+            console.error('Failed to archive ritual:', err);
+            alert('Failed to archive habit.');
+        }
     };
 
-    const handleDeleteHabit = (id) => {
-        // Handle delete logic here
-        setHabits(habits.filter(habit => habit.id !== id));
+    const handleDeleteHabit = async (id) => {
+        if (!user || !user.uid) return;
+        try {
+            await ritualService.deleteRitual(user.uid, id); // id is name
+            setHabits(habits.filter(habit => habit.id !== id));
+        } catch (err) {
+            console.error('Failed to delete ritual:', err);
+            alert('Failed to delete habit.');
+        }
     };
 
     const renderItem = ({ item }) => {
@@ -70,13 +110,30 @@ export default function CultivateScreen({ navigation }) {
                     <Pencil size={16} color={COLORS.textSecondary} />
                 </View>
 
-                <FlatList
-                    data={habits}
-                    keyExtractor={item => item.id.toString()}
-                    renderItem={renderItem}
-                    contentContainerStyle={styles.list}
-                    ItemSeparatorComponent={() => <View style={styles.separator} />}
-                />
+                {loading ? (
+                    <View style={styles.center}>
+                        <Text style={styles.infoText}>Loading rituals...</Text>
+                    </View>
+                ) : error ? (
+                    <View style={styles.center}>
+                        <Text style={styles.errorText}>{error}</Text>
+                        <TouchableOpacity style={styles.retryButton} onPress={fetchRituals}>
+                            <Text style={styles.retryText}>Retry</Text>
+                        </TouchableOpacity>
+                    </View>
+                ) : habits.length === 0 ? (
+                    <View style={styles.center}>
+                        <Text style={styles.infoText}>No active rituals yet.{'\n'}Tap + to start cultivating!</Text>
+                    </View>
+                ) : (
+                    <FlatList
+                        data={habits}
+                        keyExtractor={item => item.id.toString()}
+                        renderItem={renderItem}
+                        contentContainerStyle={styles.list}
+                        ItemSeparatorComponent={() => <View style={styles.separator} />}
+                    />
+                )}
 
                 <View style={styles.footer}>
                     <View style={styles.dragHandle} />
@@ -156,5 +213,33 @@ const styles = StyleSheet.create({
         color: COLORS.textSecondary,
         fontSize: 14,
         lineHeight: 20,
+    },
+    center: {
+        flex: 1,
+        justifyContent: 'center',
+        alignItems: 'center',
+        paddingHorizontal: 40,
+    },
+    infoText: {
+        textAlign: 'center',
+        color: COLORS.textSecondary,
+        fontSize: 16,
+        lineHeight: 24,
+    },
+    errorText: {
+        textAlign: 'center',
+        color: '#D9534F',
+        fontSize: 14,
+        marginBottom: 16,
+    },
+    retryButton: {
+        backgroundColor: COLORS.primary,
+        paddingHorizontal: 20,
+        paddingVertical: 10,
+        borderRadius: 8,
+    },
+    retryText: {
+        color: 'white',
+        fontWeight: 'bold',
     },
 });

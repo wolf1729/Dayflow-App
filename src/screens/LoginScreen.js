@@ -3,10 +3,11 @@ import { SafeAreaView } from 'react-native-safe-area-context';
 import { useState } from 'react';
 import { Sprout, Eye, EyeOff } from 'lucide-react-native';
 import { COLORS } from '../constants/colors';
-import auth, { getAuth, signInWithEmailAndPassword, GoogleAuthProvider, signInWithCredential } from '@react-native-firebase/auth';
+import { getAuth, signInWithEmailAndPassword, GoogleAuthProvider, signInWithCredential } from '@react-native-firebase/auth';
 import { GoogleSignin } from '@react-native-google-signin/google-signin';
 import Toast from 'react-native-toast-message';
 import useAuthStore from '../store/useAuthStore';
+import apiClient from '../utils/apiClient';
 
 GoogleSignin.configure({
     webClientId: process.env.EXPO_PUBLIC_WEBCLIENTID,

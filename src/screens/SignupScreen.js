@@ -7,6 +7,7 @@ import { getAuth, createUserWithEmailAndPassword, GoogleAuthProvider, signInWith
 import { GoogleSignin } from '@react-native-google-signin/google-signin';
 import Toast from 'react-native-toast-message';
 import useAuthStore from '../store/useAuthStore';
+import apiClient from '../utils/apiClient';
 
 GoogleSignin.configure({
     webClientId: process.env.EXPO_PUBLIC_WEBCLIENTID,

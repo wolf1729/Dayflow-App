@@ -1,4 +1,4 @@
-BASE_URL = process.env.EXPO_PUBLIC_API_BASE_URL;
+const BASE_URL = process.env.EXPO_PUBLIC_API_BASE_URL;
 
 /**
  * Reusable API client for the Dayflow App.
