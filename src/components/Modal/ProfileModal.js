@@ -2,12 +2,13 @@ import { View, Text, StyleSheet, Platform, TouchableOpacity, Alert, Modal, Press
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { UserCircle, LogOut, X, Trash2 } from 'lucide-react-native';
 import { useNavigation } from '@react-navigation/native';
-import { getAuth, signOut, deleteUser } from '@react-native-firebase/auth';
+import { getAuth, signOut, deleteUser, GoogleAuthProvider, reauthenticateWithCredential } from '@react-native-firebase/auth';
 import { GoogleSignin } from '@react-native-google-signin/google-signin';
 import Toast from 'react-native-toast-message';
 
 import { COLORS } from '../../constants/colors';
 import useAuthStore from '../../store/useAuthStore';
+import apiClient from '../../utils/apiClient';
 
 export default function ProfileModal({ isVisible, onClose }) {
     const navigation = useNavigation();
@@ -55,6 +56,14 @@ export default function ProfileModal({ isVisible, onClose }) {
                 return;
             }
 
+            // Delete data from custom backend FIRST before terminating the Firebase token
+            try {
+                await apiClient.delete(`/auth/${firebaseUser.uid}`);
+            } catch (dbError) {
+                console.error("Failed to delete MongoDB user data:", dbError);
+                // Proceed to delete the account anyway so the user isn't stuck
+            }
+
             await deleteUser(firebaseUser);
 
             if (GoogleSignin.hasPreviousSignIn()) {
@@ -66,17 +75,63 @@ export default function ProfileModal({ isVisible, onClose }) {
         } catch (error) {
             console.error(error);
             if (error.code === 'auth/requires-recent-login') {
-                Alert.alert(
-                    "Error",
-                    "For security reasons, you must log in again before deleting your account.",
-                    [
-                        {
-                            text: "Log Out to Re-authenticate",
-                            onPress: executeLogout
-                        },
-                        { text: "Cancel", style: "cancel" }
-                    ]
-                );
+                const providerId = firebaseUser.providerData[0]?.providerId;
+
+                if (providerId === 'google.com') {
+                    Alert.alert(
+                        "Verify Identity",
+                        "Please verify your Google account to confirm account deletion.",
+                        [
+                            { text: "Cancel", style: "cancel" },
+                            {
+                                text: "Verify & Delete",
+                                style: "destructive",
+                                onPress: async () => {
+                                    try {
+                                        await GoogleSignin.hasPlayServices();
+                                        const googleSignInResult = await GoogleSignin.signIn();
+                                        const { idToken, accessToken } = googleSignInResult.data;
+
+                                        const credential = GoogleAuthProvider.credential(idToken, accessToken);
+                                        await reauthenticateWithCredential(firebaseUser, credential);
+
+                                        // Attempt backend user deletion first
+                                        try {
+                                            await apiClient.delete(`/auth/${firebaseUser.uid}`);
+                                        } catch (dbError) {
+                                            console.error("Failed to delete MongoDB user data during reauth:", dbError);
+                                        }
+
+                                        // Attempt deletion again
+                                        await deleteUser(firebaseUser);
+
+                                        if (GoogleSignin.hasPreviousSignIn()) {
+                                            await GoogleSignin.signOut();
+                                        }
+
+                                        logout();
+                                        onClose();
+                                    } catch (reauthError) {
+                                        console.error("Re-authentication failed:", reauthError);
+                                        Toast.show({ type: 'error', text1: 'Verification Failed', text2: 'Could not verify your identity. Please log out and try again.' });
+                                    }
+                                }
+                            }
+                        ]
+                    );
+                } else {
+                    Alert.alert(
+                        "Session Expired",
+                        "For security reasons, you must log out and log in again before deleting your account.",
+                        [
+                            {
+                                text: "Log Out",
+                                onPress: executeLogout
+                            },
+                            { text: "Cancel", style: "cancel" }
+                        ]
+                    );
+                }
             } else {
                 Toast.show({ type: 'error', text1: 'Error', text2: 'Failed to delete account. Please try again later.' });
             }
