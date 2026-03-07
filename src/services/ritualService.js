@@ -85,6 +85,22 @@ const ritualService = {
      */
     async updateDailyStreak(uid, date) {
         return apiClient.patch(`/rituals/${uid}/update-streak`, { date });
+    },
+
+    /**
+     * Get insight data for the user.
+     * @param {string} uid User ID
+     */
+    async getInsights(uid) {
+        return apiClient.get(`/rituals/${uid}/insights`);
+    },
+
+    /**
+     * Get multi-line counter insight data for the user.
+     * @param {string} uid User ID
+     */
+    async getCounterInsights(uid) {
+        return apiClient.get(`/rituals/${uid}/counter-insights`);
     }
 };
 
