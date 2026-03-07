@@ -61,17 +61,20 @@ export default function InsightScreen() {
     const [multiCounterInsights, setMultiCounterInsights] = useState({
         counterHabitsHistory: []
     });
+    const [totalActiveRituals, setTotalActiveRituals] = useState(0);
 
     const fetchInsights = useCallback(async () => {
         if (!user || !user.uid) return;
         setIsLoading(true);
         try {
-            const [data, counterData] = await Promise.all([
+            const [data, counterData, rituals] = await Promise.all([
                 ritualService.getInsights(user.uid),
-                ritualService.getCounterInsights(user.uid)
+                ritualService.getCounterInsights(user.uid),
+                ritualService.getRituals(user.uid)
             ]);
             setInsights(data);
             setMultiCounterInsights(counterData);
+            setTotalActiveRituals(rituals?.activeRitual?.length || 0);
         } catch (error) {
             console.error('Failed to load insights:', error);
         } finally {
@@ -105,6 +108,11 @@ export default function InsightScreen() {
             break;
         }
     }
+
+    // Calculate today's completion percentage
+    const todayIso = new Date().toISOString().split('T')[0];
+    const todayCompleted = insights.overallCompletionHistory[todayIso] || 0;
+    const completionPercentage = totalActiveRituals > 0 ? Math.round((todayCompleted / totalActiveRituals) * 100) : 0;
 
     const chartConfig = {
         backgroundGradientFrom: COLORS.card,
@@ -141,9 +149,6 @@ export default function InsightScreen() {
 
                 <View style={styles.header}>
                     <Text style={styles.headerTitle}>Reflection</Text>
-                    <View style={styles.calendarIcon}>
-                        <Calendar size={20} color={COLORS.textprimary} />
-                    </View>
                 </View>
 
                 {isLoading ? (
@@ -231,7 +236,7 @@ export default function InsightScreen() {
 
                         <View style={styles.statsRow}>
                             <StatCard label="CURRENT STREAK" value={currentStreak.toString()} unit="Days" icon={Flame} />
-                            <StatCard label="COMPLETION" value="--" unit="%" icon={CheckCircle2} />
+                            <StatCard label="COMPLETION" value={completionPercentage.toString()} unit="%" icon={CheckCircle2} />
                         </View>
                     </>
                 )}
