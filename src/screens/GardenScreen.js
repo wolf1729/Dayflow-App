@@ -1,46 +1,102 @@
 import { View, Text, StyleSheet, ScrollView, Platform, TouchableOpacity } from 'react-native';
-import { useState } from 'react';
+import { useEffect, useState, useCallback } from 'react';
 import { SafeAreaView } from 'react-native-safe-area-context';
+import { useIsFocused } from '@react-navigation/native';
 import { UserCircle } from 'lucide-react-native';
 
 import { COLORS } from '../constants/colors';
+import { ActivityIndicator } from 'react-native';
 import RitualItem from '../components/RitualItem';
 import ProfileModal from '../components/Modal/ProfileModal';
+import useAuthStore from '../store/useAuthStore';
+import ritualService from '../services/ritualService';
 
 export default function GardenScreen() {
     const [isProfileModalVisible, setProfileModalVisible] = useState(false);
+    const isFocused = useIsFocused();
 
-    const [rituals, setRituals] = useState([
-        { id: 1, title: 'Morning Meditation', subtitle: '15 mins • Mindfulness', completed: false, streak: 12 },
-        { id: 2, title: 'Hydrate', subtitle: 'Drink enough water', isCounter: true, count: 0, unit: 'glasses', streak: 0, type: 'water' },
-    ]);
+    const [rituals, setRituals] = useState([]);
+    const [isLoading, setIsLoading] = useState(true);
 
-    const [focusItems, setFocusItems] = useState([
-        { id: 3, title: 'Leetcoding', subtitle: 'Daily practice', isCounter: true, count: 0, unit: 'questions', streak: 5 },
-        { id: 4, title: 'Read 30 Pages', subtitle: 'Atomic Habits', completed: true, streak: 24 },
-        { id: 5, title: 'Journaling', subtitle: 'Gratitude log', completed: true, streak: 8 },
-    ]);
+    const user = useAuthStore(state => state.user);
 
-    const toggleRitual = (id) => {
-        setRituals(items => items.map(item => item.id === id ? { ...item, completed: !item.completed } : item));
+    const fetchRituals = useCallback(async () => {
+        if (!user || !user.uid) return;
+        setIsLoading(true);
+        try {
+            const data = await ritualService.getRituals(user.uid);
+
+            // Get today's date string in YYYY-MM-DD format for completion checking
+            const todayStr = new Date().toISOString().split('T')[0];
+
+            const activeRituals = data.activeRitual || [];
+
+            const allRituals = [];
+
+            activeRituals.forEach(r => {
+                // Check if completedOn contains today's date prefix
+                const isCompletedToday = (r.completedOn || []).some(
+                    timestamp => timestamp && timestamp.startsWith(todayStr)
+                );
+
+                allRituals.push({
+                    id: r.ritual_id,
+                    title: r.name,
+                    subtitle: r.group,
+                    group: r.group, // Used for grouping
+                    completed: isCompletedToday,
+                    isCounter: r.isCounter,
+                    unit: r.unit,
+                    count: r.countLogs ? (r.countLogs[todayStr] || 0) : 0,
+                    type: r.unit && r.unit.toLowerCase().includes('water') ? 'water' : 'default',
+                    streak: 0 // Mock streak for now
+                });
+            });
+
+            setRituals(allRituals);
+        } catch (error) {
+            console.error('Failed to load rituals for garden:', error);
+        } finally {
+            setIsLoading(false);
+        }
+    }, [user]);
+
+    useEffect(() => {
+        if (isFocused) {
+            fetchRituals();
+        }
+    }, [fetchRituals, isFocused]);
+
+
+    const toggleRitual = async (id) => {
+        const item = rituals.find(r => r.id === id);
+        if (item && item.completed) return; // Prevent unmarking
+
+        // Optimistic update
+        setRituals(items => items.map(item => item.id === id ? { ...item, completed: true } : item));
+
+        if (user && user.uid) {
+            try {
+                const timestamp = new Date().toISOString();
+                await ritualService.completeRitual(user.uid, id, timestamp);
+            } catch (error) {
+                console.error('Failed to complete ritual:', error);
+                // Revert on error
+                setRituals(items => items.map(item => item.id === id ? { ...item, completed: false } : item));
+            }
+        }
     };
 
-    const handleIncrement = (id, listType) => {
-        const setter = listType === 'rituals' ? setRituals : setFocusItems;
-        setter(items => items.map(item =>
+    const handleIncrement = (id) => {
+        setRituals(items => items.map(item =>
             item.id === id ? { ...item, count: (item.count || 0) + 1 } : item
         ));
     };
 
-    const handleDecrement = (id, listType) => {
-        const setter = listType === 'rituals' ? setRituals : setFocusItems;
-        setter(items => items.map(item =>
+    const handleDecrement = (id) => {
+        setRituals(items => items.map(item =>
             item.id === id ? { ...item, count: Math.max(0, (item.count || 0) - 1) } : item
         ));
-    };
-
-    const toggleFocus = (id) => {
-        setFocusItems(items => items.map(item => item.id === id ? { ...item, completed: !item.completed } : item));
     };
 
     // Date formatting
@@ -60,6 +116,18 @@ export default function GardenScreen() {
             current: offset === 0,
         };
     });
+
+    // Group habits by their 'group' field
+    const ritualSections = rituals.reduce((acc, ritual) => {
+        const groupName = ritual.group || 'General';
+        const section = acc.find(s => s.title === groupName);
+        if (section) {
+            section.data.push(ritual);
+        } else {
+            acc.push({ title: groupName, data: [ritual] });
+        }
+        return acc;
+    }, []);
 
     return (
         <SafeAreaView edges={['top', 'left', 'right']} style={styles.safeArea}>
@@ -87,41 +155,38 @@ export default function GardenScreen() {
                     ))}
                 </View>
 
-                {/* Morning Rituals */}
-                <View style={styles.sectionHeader}>
-                    <Text style={styles.sectionTitle}>MORNING RITUALS</Text>
-                    <View style={styles.separator} />
-                </View>
-
-                <View style={styles.listContainer}>
-                    {rituals.map(item => (
-                        <RitualItem
-                            key={item.id}
-                            {...item}
-                            onToggle={() => toggleRitual(item.id)}
-                            onIncrement={() => handleIncrement(item.id, 'rituals')}
-                            onDecrement={() => handleDecrement(item.id, 'rituals')}
-                        />
-                    ))}
-                </View>
-
-                {/* Focus & Growth */}
-                <View style={styles.sectionHeader}>
-                    <Text style={styles.sectionTitle}>FOCUS & GROWTH</Text>
-                    <View style={styles.separator} />
-                </View>
-
-                <View style={styles.listContainer}>
-                    {focusItems.map(item => (
-                        <RitualItem
-                            key={item.id}
-                            {...item}
-                            onToggle={() => toggleFocus(item.id)}
-                            onIncrement={() => handleIncrement(item.id, 'focus')}
-                            onDecrement={() => handleDecrement(item.id, 'focus')}
-                        />
-                    ))}
-                </View>
+                {isLoading ? (
+                    <View style={styles.center}>
+                        <ActivityIndicator size="large" color={COLORS.primary} />
+                        <Text style={[styles.infoText, { marginTop: 16 }]}>Loading your garden...</Text>
+                    </View>
+                ) : (
+                    <>
+                        {ritualSections.length === 0 ? (
+                            <Text style={styles.emptyText}>No reading items found.</Text>
+                        ) : (
+                            ritualSections.map((section, index) => (
+                                <View key={`section-${index}`}>
+                                    <View style={styles.sectionHeader}>
+                                        <Text style={styles.sectionTitle}>{section.title.toUpperCase()}</Text>
+                                        <View style={styles.separator} />
+                                    </View>
+                                    <View style={styles.listContainer}>
+                                        {section.data.map(item => (
+                                            <RitualItem
+                                                key={item.id}
+                                                {...item}
+                                                onToggle={() => toggleRitual(item.id)}
+                                                onIncrement={() => handleIncrement(item.id)}
+                                                onDecrement={() => handleDecrement(item.id)}
+                                            />
+                                        ))}
+                                    </View>
+                                </View>
+                            ))
+                        )}
+                    </>
+                )}
 
             </ScrollView>
 
@@ -221,4 +286,20 @@ const styles = StyleSheet.create({
     listContainer: {
         marginBottom: 20,
     },
+    center: {
+        flex: 1,
+        justifyContent: 'center',
+        alignItems: 'center',
+        paddingVertical: 40,
+    },
+    infoText: {
+        color: COLORS.textSecondary,
+        fontSize: 16,
+    },
+    emptyText: {
+        color: COLORS.textSecondary,
+        fontStyle: 'italic',
+        textAlign: 'center',
+        marginBottom: 16,
+    }
 });

@@ -1,7 +1,8 @@
-import { View, Text, StyleSheet, FlatList, TouchableOpacity } from 'react-native';
+import { View, Text, StyleSheet, SectionList, TouchableOpacity, Alert, ActivityIndicator } from 'react-native';
 import { useState, useEffect, useCallback } from 'react';
 import { SafeAreaView } from 'react-native-safe-area-context';
-import { ArrowLeft, Plus, Pencil } from 'lucide-react-native';
+import { useIsFocused } from '@react-navigation/native';
+import { ArrowLeft, Plus, Trash2 } from 'lucide-react-native';
 import { COLORS } from '../constants/colors';
 
 import HabitItem from '../components/Cultivate/HabitItem';
@@ -11,6 +12,7 @@ import ritualService from '../services/ritualService';
 
 export default function CultivateScreen({ navigation }) {
     const { user } = useAuthStore();
+    const isFocused = useIsFocused();
     const [habits, setHabits] = useState([]);
     const [loading, setLoading] = useState(true);
     const [error, setError] = useState(null);
@@ -24,7 +26,7 @@ export default function CultivateScreen({ navigation }) {
             // Backend returns RitualModel with activeRitual, archivedRitual, deletedRitual
             // Map activeRitual to the format used in the UI
             const activeRituals = (data.activeRitual || []).map((r, index) => ({
-                id: r.name, // Use name as ID for consistency with backend patches
+                id: r.ritual_id, // Use unique ritual_id from backend
                 title: r.name,
                 isCounter: r.isCounter,
                 unit: r.unit,
@@ -42,8 +44,10 @@ export default function CultivateScreen({ navigation }) {
     }, [user]);
 
     useEffect(() => {
-        fetchRituals();
-    }, [fetchRituals]);
+        if (isFocused) {
+            fetchRituals();
+        }
+    }, [fetchRituals, isFocused]);
 
     const handleAddHabit = async (habitData) => {
         if (!user || !user.uid) return;
@@ -91,6 +95,63 @@ export default function CultivateScreen({ navigation }) {
 
     const existingCategories = [...new Set(habits.map(h => h.group).filter(Boolean))];
 
+    // Group habits by their 'group' field
+    const habitSections = habits.reduce((acc, habit) => {
+        const groupName = habit.group || 'General';
+        const section = acc.find(s => s.title === groupName);
+        if (section) {
+            section.data.push(habit);
+        } else {
+            acc.push({ title: groupName, data: [habit] });
+        }
+        return acc;
+    }, []);
+
+    const handleDeleteGroup = (groupName) => {
+        if (!user || !user.uid) return;
+
+        Alert.alert(
+            "Delete Group",
+            `Are you sure you want to delete all rituals in the "${groupName}" group?`,
+            [
+                { text: "Cancel", style: "cancel" },
+                {
+                    text: "Delete",
+                    style: "destructive",
+                    onPress: async () => {
+                        try {
+                            await ritualService.deleteGroupRituals(user.uid, groupName);
+                            // Refresh list
+                            fetchRituals();
+                        } catch (err) {
+                            console.error('Failed to delete group:', err);
+                            alert('Failed to delete group.');
+                        }
+                    }
+                }
+            ]
+        );
+    };
+
+    const renderSectionHeader = ({ section: { title } }) => (
+        <View style={styles.sectionHeader}>
+            <View style={styles.sectionHeaderLeft}>
+                <Text style={styles.sectionTitle}>{title}</Text>
+                <View style={styles.sectionBadge}>
+                    <Text style={styles.sectionBadgeText}>
+                        {habits.filter(h => h.group === title || (!h.group && title === 'General')).length}
+                    </Text>
+                </View>
+            </View>
+            <TouchableOpacity
+                style={styles.deleteGroupBtn}
+                onPress={() => handleDeleteGroup(title)}
+            >
+                <Trash2 size={16} color={COLORS.textSecondary} />
+            </TouchableOpacity>
+        </View>
+    );
+
     return (
         <SafeAreaView edges={['top', 'left', 'right']} style={styles.safeArea}>
             <View style={styles.container}>
@@ -105,14 +166,11 @@ export default function CultivateScreen({ navigation }) {
                     </TouchableOpacity>
                 </View>
 
-                <View style={styles.listHeader}>
-                    <Text style={styles.listHeaderTitle}>Morning Rituals</Text>
-                    <Pencil size={16} color={COLORS.textSecondary} />
-                </View>
 
                 {loading ? (
                     <View style={styles.center}>
-                        <Text style={styles.infoText}>Loading rituals...</Text>
+                        <ActivityIndicator size="large" color={COLORS.primary} />
+                        <Text style={[styles.infoText, { marginTop: 16 }]}>Loading rituals...</Text>
                     </View>
                 ) : error ? (
                     <View style={styles.center}>
@@ -126,11 +184,13 @@ export default function CultivateScreen({ navigation }) {
                         <Text style={styles.infoText}>No active rituals yet.{'\n'}Tap + to start cultivating!</Text>
                     </View>
                 ) : (
-                    <FlatList
-                        data={habits}
-                        keyExtractor={item => item.id.toString()}
+                    <SectionList
+                        sections={habitSections}
+                        keyExtractor={(item) => item.id.toString()}
                         renderItem={renderItem}
+                        renderSectionHeader={renderSectionHeader}
                         contentContainerStyle={styles.list}
+                        stickySectionHeadersEnabled={false}
                         ItemSeparatorComponent={() => <View style={styles.separator} />}
                     />
                 )}
@@ -187,6 +247,41 @@ const styles = StyleSheet.create({
         fontSize: 16,
         fontWeight: '500',
         color: COLORS.textprimary,
+    },
+    sectionHeader: {
+        paddingHorizontal: 24,
+        paddingVertical: 12,
+        backgroundColor: COLORS.background,
+        flexDirection: 'row',
+        alignItems: 'center',
+        justifyContent: 'space-between',
+        marginTop: 8,
+    },
+    sectionTitle: {
+        fontSize: 14,
+        fontWeight: '700',
+        color: COLORS.textSecondary,
+        letterSpacing: 1.2,
+        textTransform: 'uppercase',
+        marginRight: 8,
+    },
+    sectionBadge: {
+        backgroundColor: '#F0F5F4',
+        paddingHorizontal: 8,
+        paddingVertical: 2,
+        borderRadius: 10,
+    },
+    sectionBadgeText: {
+        fontSize: 12,
+        color: COLORS.textSecondary,
+        fontWeight: '600',
+    },
+    sectionHeaderLeft: {
+        flexDirection: 'row',
+        alignItems: 'center',
+    },
+    deleteGroupBtn: {
+        padding: 4,
     },
     list: {
         backgroundColor: COLORS.background,

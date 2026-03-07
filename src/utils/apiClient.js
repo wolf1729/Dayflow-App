@@ -25,13 +25,21 @@ const apiClient = {
 
         try {
             const response = await fetch(url, config);
-            const data = await response.json();
+
+            // Check if response is JSON
+            const contentType = response.headers.get('content-type');
+            let data;
+            if (contentType && contentType.includes('application/json')) {
+                data = await response.json();
+            } else {
+                data = { message: await response.text() };
+            }
 
             if (!response.ok) {
                 // Return a structured error object
                 throw {
                     status: response.status,
-                    message: data.detail || data.message || 'An unexpected error occurred',
+                    message: data.detail || data.message || `Server error (${response.status})`,
                     data: data
                 };
             }

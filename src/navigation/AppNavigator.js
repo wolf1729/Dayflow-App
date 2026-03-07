@@ -6,7 +6,7 @@ import TabNavigator from './TabNavigator';
 import { View, ActivityIndicator } from 'react-native';
 import { COLORS } from '../constants/colors';
 import useAuthStore from '../store/useAuthStore';
-import auth from '@react-native-firebase/auth';
+import { getAuth, onAuthStateChanged } from '@react-native-firebase/auth';
 import { useEffect } from 'react';
 
 const Stack = createStackNavigator();
@@ -17,9 +17,9 @@ export default function AppNavigator() {
     const logout = useAuthStore((state) => state.logout);
 
     useEffect(() => {
-        const unsubscribe = auth().onAuthStateChanged((firebaseUser) => {
+        const auth = getAuth();
+        const unsubscribe = onAuthStateChanged(auth, (firebaseUser) => {
             if (!firebaseUser && isAuthenticated) {
-                // Firebase says no user, but store says authenticated
                 logout();
             }
         });
