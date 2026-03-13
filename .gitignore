@@ -41,7 +41,7 @@ yarn-error.*
 /android
 
 # auth dependencies
-google-services.json
+# google-services.json
 
 # enviroment variables
 .env

@@ -1,0 +1,47 @@
+{
+  "project_info": {
+    "project_number": "333700671123",
+    "project_id": "dayflow-ad695",
+    "storage_bucket": "dayflow-ad695.firebasestorage.app"
+  },
+  "client": [
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:333700671123:android:392e85f3adb128be994f66",
+        "android_client_info": {
+          "package_name": "com.dayflow.dayflow"
+        }
+      },
+      "oauth_client": [
+        {
+          "client_id": "333700671123-3mjfs2jijp3q9b2pjl6etvk7219hcevh.apps.googleusercontent.com",
+          "client_type": 1,
+          "android_info": {
+            "package_name": "com.dayflow.dayflow",
+            "certificate_hash": "54e7936ccf33fd15ec28d48e07352c0f09c41dcb"
+          }
+        },
+        {
+          "client_id": "333700671123-25nb5ukg1ocumk0de498gidb8ca8od3o.apps.googleusercontent.com",
+          "client_type": 3
+        }
+      ],
+      "api_key": [
+        {
+          "current_key": "AIzaSyADJ3ZFXjRDzDEmSILxbjTDmN9jkGQZ1xI"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": [
+            {
+              "client_id": "333700671123-25nb5ukg1ocumk0de498gidb8ca8od3o.apps.googleusercontent.com",
+              "client_type": 3
+            }
+          ]
+        }
+      }
+    }
+  ],
+  "configuration_version": "1"
+}

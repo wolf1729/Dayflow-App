@@ -1,18 +1,32 @@
 {
   "cli": {
     "version": ">= 18.0.1",
-    "appVersionSource": "remote"
+    "appVersionSource": "local"
   },
   "build": {
     "development": {
       "developmentClient": true,
-      "distribution": "internal"
+      "distribution": "internal",
+      "env": {
+        "EXPO_PUBLIC_API_BASE_URL": "http://localhost:3000",
+        "EXPO_PUBLIC_WEBCLIENTID": "333700671123-25nb5ukg1ocumk0de498gidb8ca8od3o.apps.googleusercontent.com"
+      }
     },
     "preview": {
-      "distribution": "internal"
+      "distribution": "internal",
+      "env": {
+        "EXPO_PUBLIC_API_BASE_URL": "https://dayflow-backend-llwn.onrender.com",
+        "EXPO_PUBLIC_WEBCLIENTID": "333700671123-25nb5ukg1ocumk0de498gidb8ca8od3o.apps.googleusercontent.com"
+      }
     },
     "production": {
-      "autoIncrement": true
+      "android": {
+        "buildType": "app-bundle"
+      },
+      "env": {
+        "EXPO_PUBLIC_API_BASE_URL": "https://dayflow-backend-llwn.onrender.com",
+        "EXPO_PUBLIC_WEBCLIENTID": "333700671123-25nb5ukg1ocumk0de498gidb8ca8od3o.apps.googleusercontent.com"
+      }
     }
   },
   "submit": {
